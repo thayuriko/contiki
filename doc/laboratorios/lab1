@@ -1,0 +1,31 @@
+ATIVIDADE 1 - Hello World
+
+1. abra o arquivo atividade3.c
+2. identifique as estruturas
+   a) enumere o nome dos processos
+	blink_process e hello_world_process
+
+   b) identifique os processos executados assim q o contiki inicializa
+	blink_process (por causa do AUTOSTART_PROCESSES())
+
+3. compile o arquivo e adicione o makefile
+
+4. grave no kit
+
+
+ATIVIDADE 2 - TEMPORIZACAO
+
+1. identifique a macro de espera e altere para q alterne a cada 2s.
+
+2. alterar pro processo hello world seja inicializado no inicio
+AUTOSTART_PROCESSES(&blink_process, &hello_world_process)
+
+3. verificar funcionamento executando o hello_world e o blink
+
+4. criar novo etimer (et_proc3)
+
+5. novo processo proc3_process para imprimir uma mensagem a cada segundo
+
+
+
+
