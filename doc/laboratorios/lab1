@@ -27,5 +27,13 @@ AUTOSTART_PROCESSES(&blink_process, &hello_world_process)
 5. novo processo proc3_process para imprimir uma mensagem a cada segundo
 
 
+ATIVIDADE 3 - PING PONG
 
+1. add 4o. processo (pong_process)
+
+2. add duas macros
+	LED_PING_EVENT
+	LED_PONG_EVENT
+
+3.
 

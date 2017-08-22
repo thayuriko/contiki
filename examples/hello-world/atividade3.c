@@ -51,27 +51,32 @@ static uint16_t count;
 /*---------------------------------------------------------------------------*/
 PROCESS(hello_world_process, "Hello world process");
 PROCESS(blink_process, "LED blink process");
-PROCESS(proc3_process, "proc3 process");
+PROCESS(proc3_process, "PROC3 process");
+PROCESS(pong_process, "PONG process");
 
 /*---------------------------------------------------------------------------*/
-AUTOSTART_PROCESSES(&blink_process, &hello_world_process, &proc3_process);
+#define LED_PING_EVENT (44)
+#define LED_PONG_EVENT (45)
+/*---------------------------------------------------------------------------*/
+AUTOSTART_PROCESSES(&blink_process, &hello_world_process, &proc3_process, &pong_process);
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(hello_world_process, ev, data)
 {
   PROCESS_BEGIN();
 
-  etimer_set(&et_hello, 5*CLOCK_SECOND);
-  PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_TIMER);
-
-
   etimer_set(&et_hello, CLOCK_SECOND * 4);
   count = 0;
   while(1) {
     PROCESS_WAIT_EVENT();
+
     if(ev == PROCESS_EVENT_TIMER){
         leds_toggle(LEDS_RED);
         etimer_reset(&et_hello);
         printf("HELLO: Piscando o LED vermelho!\n");
+        process_post(&pong_process, LED_PING_EVENT, (void*)(&hello_world_process));
+
+    } else if(ev == LED_PONG_EVENT){
+        printf("HELLO: recebeu pong\n");
     }
   }
 
@@ -82,17 +87,18 @@ PROCESS_THREAD(blink_process, ev, data)
 {
   PROCESS_BEGIN();
 
-  leds_off(LEDS_ALL);
-  etimer_set(&et_blink, 2*CLOCK_SECOND);
-  PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_TIMER);
-
   etimer_set(&et_blink, 2*CLOCK_SECOND);
   while(1) {
     PROCESS_WAIT_EVENT();
+
     if(ev == PROCESS_EVENT_TIMER){
         leds_toggle(LEDS_GREEN);
         etimer_reset(&et_blink);
         printf("BLINK: Piscando o LED verde!\n");
+        process_post(&pong_process, LED_PING_EVENT, (void*)(&blink_process));
+
+    } else if(ev == LED_PONG_EVENT){
+        printf("BLINK: recebeu pong\n");
     }
 
   }
@@ -104,16 +110,37 @@ PROCESS_THREAD(proc3_process, ev, data)
 {
   PROCESS_BEGIN();
 
-  etimer_set(&et_proc3, 5*CLOCK_SECOND);
-  PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_TIMER);
-
   etimer_set(&et_proc3, 1*CLOCK_SECOND);
 
   while(1) {
     PROCESS_WAIT_EVENT();
+
     if(ev == PROCESS_EVENT_TIMER){
         etimer_reset(&et_proc3);
-        printf("PROC3 FUNCIONA\n");
+        printf("PROC3: event timer\n");
+        process_post(&pong_process, LED_PING_EVENT, (void*)(&proc3_process));
+
+    } else if(ev == LED_PONG_EVENT){
+        printf("PROC3: recebeu pong\n");
+    }
+  }
+
+  PROCESS_END();
+}
+
+/*---------------------------------------------------------------------------*/
+PROCESS_THREAD(pong_process, ev, data)
+{
+  PROCESS_BEGIN();
+
+  PROCESS_WAIT_EVENT_UNTIL(ev == LED_PING_EVENT);
+
+  while(1) {
+    PROCESS_WAIT_EVENT();
+
+    if(ev == LED_PING_EVENT){
+        printf("PONG: Recebido PING!\n");
+        process_post((struct process*)data, LED_PONG_EVENT, NULL);
     }
   }
 
