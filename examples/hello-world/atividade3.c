@@ -58,7 +58,7 @@ PROCESS(pong_process, "PONG process");
 #define LED_PING_EVENT (44)
 #define LED_PONG_EVENT (45)
 /*---------------------------------------------------------------------------*/
-AUTOSTART_PROCESSES(&blink_process, &hello_world_process, &proc3_process, &pong_process);
+AUTOSTART_PROCESSES(lo&blink_process, &hello_world_process, &proc3_process, &pong_process);
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(hello_world_process, ev, data)
 {
