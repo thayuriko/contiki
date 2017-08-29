@@ -39,9 +39,15 @@
 #define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
 
-#define SEND_INTERVAL		15 * CLOCK_SECOND
+#define SEND_INTERVAL		5*CLOCK_SECOND
 #define MAX_PAYLOAD_LEN		40
-#define CONN_PORT     8802
+#define CONN_PORT     880
+
+#define LED_TOGGLE_REQUEST (0x79)
+#define LED_SET_STATE (0x7A)
+#define LED_GET_STATE (0x7B)
+#define LED_STATE (0x7C)
+
 static char buf[MAX_PAYLOAD_LEN];
 
 static struct uip_udp_conn *client_conn;
@@ -56,26 +62,55 @@ AUTOSTART_PROCESSES(&resolv_process,&udp_client_process);
 static void
 tcpip_handler(void)
 {
-    char *dados;
+    char i=0;
 
-    if(uip_newdata()) {
-        dados = uip_appdata;
-        dados[uip_datalen()] = '\0';
-        printf("Response from the server: '%s'\n", dados);
+    #define SEND_ECHO (0xBA)
+
+    if(uip_newdata() == LED_GET_STATE) {
+        char *dados=((char*)uip_appdata); //este buffer ́e padrao do contiki
+        PRINTF("Recebidos %d bytes\n",uip_datalen());
+
+        switch(dados[0]) {
+            case SEND_ECHO: {
+                uip_ipaddr_copy(&client_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
+                client_conn->rport = UIP_UDP_BUF->destport;
+                uip_udp_packet_send(client_conn, dados, uip_datalen());
+
+                PRINTF("Enviando eco para[");
+                PRINT6ADDR(&client_conn->ripaddr);
+                PRINTF("]:%u\n",UIP_HTONS(client_conn->rport));
+                break;
+            }
+            default: {
+                PRINTF("Comando Invalido:");
+                for(i=0;i<uip_datalen();i++){
+                    PRINTF("0x%02X",dados[i]);
+                }
+                PRINTF("\n");
+                break;
+            }
+        }
+
     }
+
+    return;
 }
 /*---------------------------------------------------------------------------*/
 static void
 timeout_handler(void)
 {
-    char payload;
-
+    char payload = LED_TOGGLE_REQUEST;
 
     if(uip_ds6_get_global(ADDR_PREFERRED) == NULL) {
       PRINTF("Aguardando auto-configuracao de IP\n");
       return;
     }
-    uip_udp_packet_send(client_conn, buf, strlen(buf));
+
+    PRINTF("Cliente para[");
+    PRINT6ADDR(&client_conn->ripaddr);
+    PRINTF("]:%u\n", UIP_HTONS(client_conn->rport));
+
+    uip_udp_packet_send(client_conn, &payload, sizeof(char));
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -179,8 +214,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
   udp_bind(client_conn, UIP_HTONS(CONN_PORT));
 
   PRINT6ADDR(&client_conn->ripaddr);
-  PRINTF(" local/remote port %u/%u\n",
-	UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
+  PRINTF(" local/remote port %u/%u\n", UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
   etimer_set(&et, SEND_INTERVAL);
   while(1) {
