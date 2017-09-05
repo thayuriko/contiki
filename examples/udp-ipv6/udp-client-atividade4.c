@@ -41,7 +41,7 @@
 
 #define SEND_INTERVAL		5*CLOCK_SECOND
 #define MAX_PAYLOAD_LEN		40
-#define CONN_PORT     880
+#define CONN_PORT 8802
 
 #define LED_TOGGLE_REQUEST (0x79)
 #define LED_SET_STATE (0x7A)
@@ -64,21 +64,29 @@ tcpip_handler(void)
 {
     char i=0;
 
-    #define SEND_ECHO (0xBA)
-
-    if(uip_newdata() == LED_GET_STATE) {
+    if(uip_newdata()) {
         char *dados=((char*)uip_appdata); //este buffer ́e padrao do contiki
         PRINTF("Recebidos %d bytes\n",uip_datalen());
 
         switch(dados[0]) {
-            case SEND_ECHO: {
+            case LED_SET_STATE: {
+
+                leds_off(LEDS_ALL);
+                leds_set(dados[1]);
+
                 uip_ipaddr_copy(&client_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
                 client_conn->rport = UIP_UDP_BUF->destport;
-                uip_udp_packet_send(client_conn, dados, uip_datalen());
 
                 PRINTF("Enviando eco para[");
                 PRINT6ADDR(&client_conn->ripaddr);
                 PRINTF("]:%u\n",UIP_HTONS(client_conn->rport));
+
+                char sent_data[2] = {LED_STATE, leds_get()};
+
+                PRINTF("0x%2X %#x \n", dados[0], dados[1]);
+
+                uip_udp_packet_send(client_conn, &sent_data, 2*sizeof(char));
+
                 break;
             }
             default: {
@@ -106,9 +114,9 @@ timeout_handler(void)
       return;
     }
 
-    PRINTF("Cliente para[");
+    PRINTF("Cliente para [");
     PRINT6ADDR(&client_conn->ripaddr);
-    PRINTF("]:%u\n", UIP_HTONS(client_conn->rport));
+    PRINTF("]: %u\n", UIP_HTONS(client_conn->rport));
 
     uip_udp_packet_send(client_conn, &payload, sizeof(char));
 }
