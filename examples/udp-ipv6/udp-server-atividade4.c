@@ -163,8 +163,8 @@ PROCESS_THREAD(udp_server_process, ev, data)
   print_local_addresses();
 
 #if UIP_CONF_ROUTER
-  dag = rpl_set_root(RPL_DEFAULT_INSTANCE,
-                     &uip_ds6_get_global(ADDR_PREFERRED)->ipaddr);
+  //dag = rpl_set_root(RPL_DEFAULT_INSTANCE, &uip_ds6_get_global(ADDR_PREFERRED)->ipaddr);
+ dag = NULL;
   if(dag != NULL) {
     uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
     rpl_set_prefix(dag, &ipaddr, 64);

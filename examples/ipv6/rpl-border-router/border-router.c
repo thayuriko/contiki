@@ -154,7 +154,7 @@ PT_THREAD(generate_routes(struct httpd_state *s))
 #if BUF_USES_STACK
   char buf[256];
 #endif
-#if WEBSERVER_CONF_LOADTIME
+#if WEBSERVER_CONF_LOADTIMEdag
   static clock_time_t numticks;
   numticks = clock_time();
 #endif
@@ -391,6 +391,7 @@ set_prefix_64(uip_ipaddr_t *prefix_64)
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
 
   dag = rpl_set_root(RPL_DEFAULT_INSTANCE, &ipaddr);
+
   if(dag != NULL) {
     rpl_set_prefix(dag, &prefix, 64);
     PRINTF("created a new RPL dag\n");
