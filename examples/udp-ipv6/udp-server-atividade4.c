@@ -80,15 +80,12 @@ tcpip_handler(void)
         {
             PRINTF("LED_TOGGLE_REQUEST\n");
 
-            rssi = (int16_t)packetbuf_attr(PACKETBUF_ATTR_RSSI);
-
             //Monta um LED_SET_STATE e envia para o nó solicitante
             uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
             server_conn->rport = UIP_UDP_BUF->destport;
             buf[0] = LED_SET_STATE;
             buf[1] = (ledCounter++)&0x03;
-            buf[2] = rssi >> 8;
-            buf[3] = rssi;
+
             uip_udp_packet_send(server_conn, buf, 4);
             PRINTF("Enviando LED_SET_STATE para [");
             PRINT6ADDR(&server_conn->ripaddr);

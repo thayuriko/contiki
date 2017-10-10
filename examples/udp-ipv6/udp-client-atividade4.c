@@ -72,8 +72,8 @@ tcpip_handler(void)
         char *dados=((char*)uip_appdata); //este buffer ́e padrao do contiki
         //PRINTF("Recebidos %d bytes\n",uip_datalen());
 
-        switch(dados[0]) {/*
-            case LED_SET_STATE: {
+        switch(dados[0]) {
+            /*case LED_SET_STATE: {
                 leds_off(LEDS_ALL);
                 leds_set(dados[1]);
 
@@ -95,19 +95,20 @@ tcpip_handler(void)
             case LED_SET_STATE:
             {
                 rssi_set = (int16_t)packetbuf_attr(PACKETBUF_ATTR_RSSI);
-                rssi_toggle = (int16_t)dados[2] << 8;
-                rssi_toggle = (int16_t)dados[3];
+                rssi_toggle = (int8_t)dados[2] << 8;
+                rssi_toggle = (int8_t)dados[3];
 
                 uip_ipaddr_copy(&client_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
                 client_conn->rport = UIP_UDP_BUF->destport;
 
-                buf[0] = LED_TOGGLE_REQUEST;
-                buf[1] = (ledCounter++)&0x03;
+                /*buf[0] = LED_TOGGLE_REQUEST;
+                buf[1] = (ledCounter++) & 0x03;*/
 
                 NETSTACK_RADIO.set_value(RADIO_PARAM_TXPOWER, value);
-                uip_udp_packet_send(client_conn, buf, 2);
 
-                PRINTF("(%d) Rx_set: %ddBm - Rx_toggle: %ddBm - Tx: %ddBm\n", UIP_HTONS(client_conn->rport), txcount, rssi_set, rssi_toggle, value);
+                //uip_udp_packet_send(client_conn, buf, 2);
+
+                PRINTF("(%d) Rx_set: %ddBm - Rx_toggle: %ddBm - Tx: %ddBm\n", txcount, rssi_set, rssi_toggle, value);
 
                 if((value < 6)&&(txcount == 10)){
                     value = value + 2;
@@ -255,6 +256,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
   PRINTF(" local/remote port %u/%u\n", UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
   etimer_set(&et, SEND_INTERVAL);
+
   while(1) {
     PROCESS_YIELD();
     if(etimer_expired(&et)) {
