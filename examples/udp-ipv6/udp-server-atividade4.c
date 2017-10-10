@@ -63,6 +63,7 @@ static void
 tcpip_handler(void)
 {
     char buf[MAX_PAYLOAD_LEN];
+    int16_t rssi;
     char* msg = (char*)uip_appdata;
     int i;
 
@@ -73,23 +74,22 @@ tcpip_handler(void)
         PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
         PRINTF("\n");
 
-        //uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
-        //PRINTF("Responding with message: ");
-        //sprintf(buf, "Hello from the server! (%d)", ++seq_id);
-        //PRINTF("%s\n", buf);
-
-
         switch (msg[0])
         {
         case LED_TOGGLE_REQUEST:
         {
             PRINTF("LED_TOGGLE_REQUEST\n");
+
+            rssi = (int16_t)packetbuf_attr(PACKETBUF_ATTR_RSSI);
+
             //Monta um LED_SET_STATE e envia para o nó solicitante
             uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
             server_conn->rport = UIP_UDP_BUF->destport;
             buf[0] = LED_SET_STATE;
             buf[1] = (ledCounter++)&0x03;
-            uip_udp_packet_send(server_conn, buf, 2);
+            buf[2] = rssi >> 8;
+            buf[3] = rssi;
+            uip_udp_packet_send(server_conn, buf, 4);
             PRINTF("Enviando LED_SET_STATE para [");
             PRINT6ADDR(&server_conn->ripaddr);
             PRINTF("]:%u\n", UIP_HTONS(server_conn->rport));

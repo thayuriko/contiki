@@ -51,6 +51,9 @@
 static char buf[MAX_PAYLOAD_LEN];
 
 static struct uip_udp_conn *client_conn;
+uint8_t ledCounter=0;
+radio_value_t value = -22;
+int txcount = 1;
 
 #define UIP_UDP_BUF  ((struct uip_udp_hdr *)&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN])
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
@@ -63,14 +66,14 @@ static void
 tcpip_handler(void)
 {
     char i=0;
+    int16_t rssi_set, rssi_toggle;
 
     if(uip_newdata()) {
         char *dados=((char*)uip_appdata); //este buffer ́e padrao do contiki
-        PRINTF("Recebidos %d bytes\n",uip_datalen());
+        //PRINTF("Recebidos %d bytes\n",uip_datalen());
 
-        switch(dados[0]) {
+        switch(dados[0]) {/*
             case LED_SET_STATE: {
-
                 leds_off(LEDS_ALL);
                 leds_set(dados[1]);
 
@@ -86,6 +89,32 @@ tcpip_handler(void)
                 PRINTF("0x%2X %#x \n", dados[0], dados[1]);
 
                 uip_udp_packet_send(client_conn, &sent_data, 2*sizeof(char));
+
+                break;
+            }*/
+            case LED_SET_STATE:
+            {
+                rssi_set = (int16_t)packetbuf_attr(PACKETBUF_ATTR_RSSI);
+                rssi_toggle = (int16_t)dados[2] << 8;
+                rssi_toggle = (int16_t)dados[3];
+
+                uip_ipaddr_copy(&client_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
+                client_conn->rport = UIP_UDP_BUF->destport;
+
+                buf[0] = LED_TOGGLE_REQUEST;
+                buf[1] = (ledCounter++)&0x03;
+
+                NETSTACK_RADIO.set_value(RADIO_PARAM_TXPOWER, value);
+                uip_udp_packet_send(client_conn, buf, 2);
+
+                PRINTF("(%d) Rx_set: %ddBm - Rx_toggle: %ddBm - Tx: %ddBm\n", UIP_HTONS(client_conn->rport), txcount, rssi_set, rssi_toggle, value);
+
+                if((value < 6)&&(txcount == 10)){
+                    value = value + 2;
+                    txcount = 1;
+                } else if (txcount < 10){
+                    txcount++;
+                }
 
                 break;
             }
@@ -155,8 +184,8 @@ set_connection_address(uip_ipaddr_t *ipaddr)
 {
 #ifndef UDP_CONNECTION_ADDR
 #if RESOLV_CONF_SUPPORTS_MDNS
-//#define UDP_CONNECTION_ADDR       contiki-udp-server.local
-#define UDP_CONNECTION_ADDR       2804:7f4:3b80:3483:10d3:8421:b747:483c
+#define UDP_CONNECTION_ADDR       contiki-udp-server.local
+//#define UDP_CONNECTION_ADDR       2804:7f4:3b80:3483:10d3:8421:b747:483c
 #elif UIP_CONF_ROUTER
 #define UDP_CONNECTION_ADDR       fd00:0:0:0:0212:7404:0004:0404
 #else
