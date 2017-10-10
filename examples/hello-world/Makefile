@@ -1,4 +1,6 @@
-CONTIKI_PROJECT = hello-world atividade3
+#CONTIKI_PROJECT = hello-world atividade3
+CONTIKI_PROJECT = hwsensors
+
 all: $(CONTIKI_PROJECT)
 
 CONTIKI = ../..

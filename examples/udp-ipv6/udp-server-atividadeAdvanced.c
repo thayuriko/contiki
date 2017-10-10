@@ -32,14 +32,12 @@
 #include "contiki-net.h"
 #include "net/rpl/rpl.h"
 #include "dev/leds.h"
+#include "protocol.h"
 
 
 #include <string.h>
 
-#define LED_TOGGLE_REQUEST (0x79)
-#define LED_SET_STATE (0x7A)
-#define LED_GET_STATE (0x7B)
-#define LED_STATE (0x7C)
+
 
 #define CONN_PORT (8802)
 
@@ -59,11 +57,23 @@ uint8_t ledCounter=0;
 PROCESS(udp_server_process, "UDP server process");
 AUTOSTART_PROCESSES(&resolv_process,&udp_server_process);
 /*---------------------------------------------------------------------------*/
+
+float operate(int32_t op1, int32_t op2, int8_t op)
+{
+    switch(op)
+    {
+    case OP_SUM: return op1+op2;
+    case OP_SUBTRACT: return op1-op2;
+    case OP_MULTIPLY: return (float)op1*(float)op2;
+    case OP_DIVIDE: return (float)op1/(float)op2;
+    default: return 0;
+    }
+}
+
 static void
 tcpip_handler(void)
 {
     char buf[MAX_PAYLOAD_LEN];
-    int16_t rssi;
     char* msg = (char*)uip_appdata;
     int i;
 
@@ -74,19 +84,23 @@ tcpip_handler(void)
         PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
         PRINTF("\n");
 
+        //uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
+        //PRINTF("Responding with message: ");
+        //sprintf(buf, "Hello from the server! (%d)", ++seq_id);
+        //PRINTF("%s\n", buf);
+
+
         switch (msg[0])
         {
         case LED_TOGGLE_REQUEST:
         {
             PRINTF("LED_TOGGLE_REQUEST\n");
-
             //Monta um LED_SET_STATE e envia para o nó solicitante
             uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
             server_conn->rport = UIP_UDP_BUF->destport;
             buf[0] = LED_SET_STATE;
             buf[1] = (ledCounter++)&0x03;
-
-            uip_udp_packet_send(server_conn, buf, 4);
+            uip_udp_packet_send(server_conn, buf, 2);
             PRINTF("Enviando LED_SET_STATE para [");
             PRINT6ADDR(&server_conn->ripaddr);
             PRINTF("]:%u\n", UIP_HTONS(server_conn->rport));
@@ -98,6 +112,37 @@ tcpip_handler(void)
         case LED_STATE:
         {
             PRINTF("LED_STATE: %s %s\n",(msg[1]&LEDS_GREEN)?" (G) ":"  G  ",(msg[1]&LEDS_RED)?" (R) ":"  R  ");
+            break;
+        }
+        case OP_REQUEST:
+        {
+            struct mathopreq* req = (struct mathopreq*)uip_appdata;
+            struct mathopreply reply;
+            uint8_t* rep8 = (uint8_t*)&reply;
+            PRINTF("OP_REQUEST\n");
+            printRequest(req);
+
+            reply.opResult = OP_RESULT;
+            reply.fpResult = operate(req->op1, req->op2, req->operation);
+            reply.fpResult *= req->fc;
+            reply.intPart = (int32_t)reply.fpResult;
+            reply.fracPart = (int32_t)(ABS_P((reply.fpResult - reply.intPart)*10000));
+
+            reply.crc=0;
+            for(int i=0;i<sizeof(struct mathopreply)-1;i++)
+            {
+                reply.crc+=rep8[i];
+            }
+            PRINTF("Enviando reply: ");
+            printReply(&reply);
+
+            //envia o pacote
+            uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
+            server_conn->rport = UIP_UDP_BUF->destport;
+            uip_udp_packet_send(server_conn, (void*)&reply, sizeof(struct mathopreply));
+            PRINTF("\n Enviando OP_REPLY para [");
+            PRINT6ADDR(&server_conn->ripaddr);
+            PRINTF("]:%u\n", UIP_HTONS(server_conn->rport));
             break;
         }
         default:
@@ -113,7 +158,7 @@ tcpip_handler(void)
         }
     }
 
-    uip_udp_packet_send(server_conn, buf, strlen(buf));
+    //uip_udp_packet_send(server_conn, buf, strlen(buf));
     /* Restore server connection to allow data from any node */
     memset(&server_conn->ripaddr, 0, sizeof(server_conn->ripaddr));
     return;
@@ -159,10 +204,9 @@ PROCESS_THREAD(udp_server_process, ev, data)
 
   print_local_addresses();
 
-#if UIP_CONF_ROUTER
-  //dag = rpl_set_root(RPL_DEFAULT_INSTANCE, &uip_ds6_get_global(ADDR_PREFERRED)->ipaddr);
- dag = NULL;
-
+#if 1 //UIP_CONF_ROUTER
+  dag = rpl_set_root(RPL_DEFAULT_INSTANCE,
+                     &uip_ds6_get_global(ADDR_PREFERRED)->ipaddr);
   if(dag != NULL) {
     uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
     rpl_set_prefix(dag, &ipaddr, 64);
