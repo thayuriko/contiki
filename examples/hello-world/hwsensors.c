@@ -139,7 +139,7 @@ AUTOSTART_PROCESSES(&cc26xx_demo_process, &adc_process_sensor,&gpio_process);
 
  uint8_t pwm_request_max_pm(void)
  {
-     return LPM_MODE_DEEP_SLEEP;
+     return LPM_MODE_AWAKE;
  }
 
  void sleep_enter(uint8_t mode)
@@ -165,8 +165,8 @@ int16_t pwminit(int32_t freq)
 
     /* Enable GPT0 clocks under active, sleep, deep sleep */
     ti_lib_prcm_peripheral_run_enable(PRCM_PERIPH_TIMER0);
-    ti_lib_prcm_peripheral_sleep_enable(PRCM_PERIPH_TIMER0);
-    ti_lib_prcm_peripheral_deep_sleep_enable(PRCM_PERIPH_TIMER0);
+    //ti_lib_prcm_peripheral_sleep_enable(PRCM_PERIPH_TIMER0);
+    //ti_lib_prcm_peripheral_deep_sleep_enable(PRCM_PERIPH_TIMER0);
     ti_lib_prcm_load_set();
     while(!ti_lib_prcm_load_get());
 
