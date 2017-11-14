@@ -74,7 +74,7 @@ extern resource_t
   res_b1_sep_b2,
   res_utfprwsn;
 #if PLATFORM_HAS_LEDS
-extern resource_t res_leds, res_toggle;
+extern resource_t res_leds, res_toggle, res_togglegreen;
 #endif
 #if PLATFORM_HAS_LIGHT
 #include "dev/light-sensor.h"
@@ -142,7 +142,7 @@ PROCESS_THREAD(er_example_server, ev, data)
 /*  rest_activate_resource(&res_sub, "test/sub"); */
 /*  rest_activate_resource(&res_b1_sep_b2, "test/b1sepb2"); */
 #if PLATFORM_HAS_LEDS
-/*  rest_activate_resource(&res_leds, "actuators/leds"); */
+  rest_activate_resource(&res_togglegreen, "actuators/togglegreen");
   rest_activate_resource(&res_toggle, "actuators/toggle");
 #endif
 #if PLATFORM_HAS_LIGHT
@@ -157,6 +157,7 @@ PROCESS_THREAD(er_example_server, ev, data)
   rest_activate_resource(&res_temperature, "sensors/temperature");  
   SENSORS_ACTIVATE(temperature_sensor);  
 #endif
+  rest_activate_resource(&res_utfprwsn, "utfprwsn/echo");
 /*
 #if PLATFORM_HAS_RADIO
   rest_activate_resource(&res_radio, "sensors/radio");  
